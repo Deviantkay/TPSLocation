@@ -1,0 +1,214 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+   <meta charset="UTF-8">
+   <meta name="viewport" content="width=device-width, initial-scale=1.0">
+   <title>Dynamic Google Map Example</title>
+   <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css">
+
+   <style>
+      #mapIframe {
+         width: 100vh;
+         height: 78vh;
+         border: none;
+      }
+
+      @media (max-width: 767px) {
+         #mapIframe {
+            width: 100%;
+            height: 40vh;
+         }
+      }
+      @media (min-width: 768px) and (max-width: 1919px) {
+         #mapIframe {
+            width: 50vw;
+            height: 50vh;
+         }
+      }
+      .custom-form-container {
+         display: flex;
+         flex-direction: column;
+         align-items: center;
+         justify-content: center;
+         height: 80vh;
+         margin-bottom: -30% !important;
+      }
+
+      .custom-form {
+         max-width: 300px;
+         width: 100%;
+      }
+
+      .custom-form .form-group {
+         margin-bottom: 15px;
+      }
+
+      .custom-form input,
+      .custom-form select,
+      .custom-form button {
+         width: 100%;
+      }
+
+      @media (max-width: 768px) {
+         .custom-form-container {
+            align-items: flex-start;
+         }
+      }
+   </style>
+
+</head>
+
+<body>
+   <header class="bg-dark text-white text-center p-4">
+      <h1>Dynamic Google Map</h1>
+   </header>
+
+   <div class="container mt-1">
+      <div class="row">
+         <div class="col-md-5 mb-3 custom-form-container justify-content-center">
+            <!-- Input for city or country -->
+            <form id="locationForm" class="custom-form">
+               <div class="form-group">   
+                  <label for="location">City:</label>
+                  <input type="text" class="form-control" id="location" placeholder="Enter city or country">
+               </div>
+
+               <!-- Dropdown for category (TPS or Bank Sampah) -->
+               <div class="form-group">
+                  <label for="category">Select Category:</label>
+                  <select class="form-control" id="category">
+                     <option value="tps">Tempat Pembuangan Sampah (TPS)</option>
+                     <option value="banksampah">Bank Sampah</option>
+                     <option value="TPA">Tempat Pembuangan Akhir (TPA)</option>
+                     <option value="sampah">Tampilkan Semua Tempat Pembuangan Sampah</option>
+                  </select>
+               </div>
+
+               <!-- Button to update map -->
+               <div class="form-group">
+                  <button type="button" class="btn btn-primary" onclick="updateMap()">Show Map</button>
+               </div>
+            </form>
+         </div>
+
+
+         <div class="col-md-5">
+            <!-- Container for the map -->
+            <div class="map-container">
+               <!-- Iframe for Google Map -->
+               <iframe id="mapIframe" src="https://www.google.com/maps/embed?pb=!1m16!1m12!1m3!1d31732.412925122622!2d101.4267945!3d0.5282594!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!2m1!1sBank%20Sampah%20di%20Pekanbaru!5e1!3m2!1sid!2sid!4v1683005676790!&t=r" allowfullscreen="" loading="lazy" referrerpolicy="no-referrer-when-downgrade"></iframe>
+            </div>
+         </div>
+      </div>
+   </div>
+
+   <p class="small fixed-bottom text-muted ml-3">note : hasil mungkin dapat tidak menampilkan keseluruhan tempat</p>
+
+   <!-- JavaScript section -->
+   <script>
+      /*
+         MAP BREAKDOWN
+         berfungsi untuk mengetahui parameter yang dapat dirubah dan tidak, sehingga dapat menjadikannya seolah olah menggunakan API Key Google Maps, namun tidak.
+         Hal ini dilakukan untuk menghindari penggunaan API Key Google Maps yang belum diperlukan.
+
+         di misalkan kita mempunyai link seperti dibawah ini:
+            https://www.google.com/maps/embed?pb=!1m16!1m12!1m3!1d31732.412925122622!2d101.4267945!3d0.5282594!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!2m1!1sBank%20Sampah%20di%20Pekanbaru!5e1!3m2!1sid!2sid!4v1683005676790!&t=r
+         
+         maka dia bisa dipecah menjadi 3 bagian seperti dibawah ini:
+         Parameter of link                                     Description
+         ----------------------------                           -----------
+
+      Base URL:
+         https://www.google.com/maps/embed?pb=                 Always same (Base URL untuk menyematkan Google Maps)
+
+      Parameter 1:
+            !1m16                                              Mode Tampilan Peta (Mode 16 = tempat)
+               !1m12                                           Jumlah Parameter (disini 12 parameter, sebaiknya tidak dirubah)
+                  !1m3                                         Always same (Penanda untuk awal jarak atau skala peta)
+                     !1d31732.412925122622                     Zoom Level (disini menunjukkan zoom levelnya di 31.732 km)
+                     !2d101.4267945                            Longitude (Longitude pusat peta, disini 101.4267945 derajat timur)
+                     !3d0.5282594                              Latitude (Latitude pusat peta, disini 0.5282594 derajat utara)
+
+      Parameter 2:
+                  !2m3                                         Always same (Penanda untuk awal sudut pandang peta)
+                     !1f0                                      Always same (Arah peta, 0 = utara/menghadap atas)
+                     !2f0                                      Always same (Kemiringan peta, kemiringan sumbu x)
+                     !3f0                                      Always same (Kemiringan peta, kemiringan sumbu y)
+
+      Parameter 3:
+                  !3m2                                         Always same (Penanda untuk awal ukuran peta)
+                     !1i1024                                   Always same (Lebar peta default, disini 1024 piksel)
+                     !2i768                                    Always same (Tinggi peta default, disini 768 piksel)
+                  !4f13.1                                      Always same (Tingkat zoom peta, disini antara 13 dan 14)
+
+      Parameter 4:
+               !2m1                                            Marker
+                  !1sBank%20Sampah%20di%20Pekanbaru            Marker Name
+         
+      Parameter 5:
+               !5e1                                            Always same (Jenis peta, 1 = peta jalan)
+               !3m2                                            Always same (Penanda untuk bahasa pada peta)
+                  !1sid                                        Language (Bahasa utama pada peta, disini bahasa Indonesia)
+                  !2sid                                        Alternate Language (Bahasa alternatif pada peta, disini bahasa Indonesia)
+               !4v1683005676790                                Google Maps Version (Tanggal versi: 14 Desember 2023)
+               !&t=r                                           Theme (Tema peta, r = retro, k = dark, h = light, p = default)
+            
+         Note:
+            - Untuk Bagian yang memiliki description "Always same" tidak boleh dirubah, karena akan mengakibatkan error.
+      */
+
+      function updateMap() {
+         // Get values from the form
+         var locationInput = document.getElementById('location').value;
+         var category = document.getElementById('category').value;
+
+         //update data category when value is TPS
+         if (category == 'tps') {
+            category = encodeURIComponent('Tempat sampah' +locationInput);
+         }
+         //update data category when value is Bank Sampah
+         else if (category == 'banksampah') {
+            category = encodeURIComponent('banksampah di '+locationInput);
+         }
+
+         // Set default coordinates
+         var defaultLatitude = 0.5187316; // Default latitude
+         var defaultLongitude = 101.4323738; // Default longitude
+
+         // If the location is provided, call the OpenCage Geocoding API to get coordinates
+         if (locationInput) {
+            fetch('https://api.opencagedata.com/geocode/v1/json?q=' + encodeURIComponent(locationInput) + '&key=8db57c4a0aa24556813b53a8410823cf')
+               .then(response => response.json())
+               .then(data => {
+                  if (data.results.length > 0) {
+                     defaultLatitude = data.results[0].geometry.lat;
+                     defaultLongitude = data.results[0].geometry.lng;
+                  }
+
+                  // Update the map URL with the new coordinates
+                  updateMapIframe(category, defaultLatitude, defaultLongitude);
+               })
+               .catch(error => console.error('Error:', error));
+         } else {
+            // Update the map URL with the default coordinates
+            updateMapIframe(category, defaultLatitude, defaultLongitude);
+         }
+      }
+
+      function updateMapIframe(category, latitude, longitude) {
+         var mapIframe = document.getElementById('mapIframe');
+         var src = 'https://www.google.com/maps/embed?pb=!1m16!1m12!1m3!1d31732.412925122622!2d' + longitude + '!3d' + latitude + '!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!2m1!1s' + category + '!5e1!3m2!1sid!2sid!4v1683005676790!5m2!1sid!2sid&t=k';
+
+         mapIframe.src = src;
+      }
+
+   </script>
+
+   <!-- Bootstrap JS -->
+   <script src="https://code.jquery.com/jquery-3.5.1.slim.min.js"></script>
+   <script src="https://cdn.jsdelivr.net/npm/@popperjs/core@2.10.2/dist/umd/popper.min.js"></script>
+   <script src="https://cdn.jsdelivr.net/npm/bootstrap@4.5.2/dist/js/bootstrap.min.js"></script>
+</body>
+
+</html>
