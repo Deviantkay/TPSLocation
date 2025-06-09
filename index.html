@@ -1,314 +1,345 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="en" class="h-full">
 
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Find Recycling Locations</title>
+    <title>EcoFinder | Modern Recycling Locator</title>
     
-    <!-- Bootstrap 5 CSS & Icons -->
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet" integrity="sha384-T3c6CoIi6uLrA9TneNEoa7RxnatzjcDSCmG1MXxSR1GAsXEV/Dwwykc2MPK8M2HN" crossorigin="anonymous">
-    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
-    
-    <!-- Google Fonts -->
+    <!-- Tailwind CSS JIT CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+
+    <!-- Google Fonts: Poppins -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;600;700&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    
+    <!-- Heroicons for modern icons -->
+    <script type="module" src="https://unpkg.com/ionicons@7.1.0/dist/ionicons/ionicons.esm.js"></script>
+    <script nomodule src="https://unpkg.com/ionicons@7.1.0/dist/ionicons/ionicons.js"></script>
 
     <style>
-        /* --- THEME & VARIABLES --- */
-        :root {
-            --primary-color: #007bff; /* A vibrant blue */
-            --secondary-color: #28a745; /* A friendly green */
-            --background-gradient: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%);
-            --panel-bg: rgba(255, 255, 255, 0.85);
-            --text-color: #333;
-            --header-bg: #2c3e50;
-            --header-text: #ecf0f1;
-            --shadow-light: 0 4px 15px rgba(0, 0, 0, 0.08);
-            --shadow-strong: 0 8px 25px rgba(0, 0, 0, 0.12);
-            --border-radius: 12px;
-        }
-
-        /* --- BASE STYLES --- */
+        /* Apply the custom font to the whole page */
         body {
             font-family: 'Poppins', sans-serif;
-            background: var(--background-gradient);
-            color: var(--text-color);
-            min-height: 100vh;
         }
-
-        /* --- HEADER --- */
-        .page-header {
-            background-color: var(--header-bg);
-            color: var(--header-text);
-            padding: 1.5rem 1rem;
-            margin-bottom: 2rem;
-            box-shadow: var(--shadow-strong);
+        /* Style for the loading spinner inside a button */
+        .btn-spinner,
+        .btn-spinner:after {
+          border-radius: 50%;
+          width: 1.25em;
+          height: 1.25em;
         }
-        .page-header h1 {
-            font-weight: 700;
-            letter-spacing: 1px;
+        .btn-spinner {
+          font-size: 10px;
+          position: relative;
+          text-indent: -9999em;
+          border-top: 0.2em solid rgba(255, 255, 255, 0.2);
+          border-right: 0.2em solid rgba(255, 255, 255, 0.2);
+          border-bottom: 0.2em solid rgba(255, 255, 255, 0.2);
+          border-left: 0.2em solid #ffffff;
+          transform: translateZ(0);
+          animation: load8 1.1s infinite linear;
         }
-        .page-header i {
-            margin-right: 10px;
-            color: var(--secondary-color);
-        }
-
-        /* --- MAIN CONTENT & PANELS --- */
-        .content-panel {
-            background-color: var(--panel-bg);
-            backdrop-filter: blur(10px);
-            border: 1px solid rgba(255, 255, 255, 0.5);
-            padding: 2rem;
-            border-radius: var(--border-radius);
-            box-shadow: var(--shadow-strong);
-            height: 100%;
-        }
-
-        /* --- FORM STYLES --- */
-        .custom-form .form-label {
-            font-weight: 600;
-            margin-bottom: 0.5rem;
-        }
-        .form-control, .form-select {
-            border-radius: 8px;
-            border: 1px solid #ddd;
-            padding: 0.75rem 1rem;
-            transition: all 0.3s ease;
-        }
-        .form-control:focus, .form-select:focus {
-            border-color: var(--primary-color);
-            box-shadow: 0 0 0 3px rgba(0, 123, 255, 0.2);
-        }
-        
-        /* --- BUTTON STYLES --- */
-        .btn-show-map {
-            background: linear-gradient(45deg, var(--primary-color), var(--secondary-color));
-            border: none;
-            padding: 0.75rem 1.5rem;
-            font-weight: 600;
-            letter-spacing: 0.5px;
-            border-radius: 8px;
-            transition: all 0.3s ease;
-            box-shadow: var(--shadow-light);
-        }
-        .btn-show-map:hover {
-            transform: translateY(-3px);
-            box-shadow: var(--shadow-strong);
-        }
-        .btn-show-map:disabled {
-            background: #aaa;
-            cursor: not-allowed;
-        }
-
-
-        /* --- MAP CONTAINER --- */
-        .map-container {
-            position: relative;
-            border-radius: var(--border-radius);
-            overflow: hidden; /* Important for the border-radius on the iframe */
-            box-shadow: var(--shadow-strong);
-            height: 100%;
-            min-height: 500px;
-        }
-        #mapIframe {
-            width: 100%;
-            height: 100%;
-            border: none;
-        }
-        
-        /* --- MAP LOADING OVERLAY --- */
-        #map-loader {
-            position: absolute;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            background-color: rgba(255, 255, 255, 0.7);
-            backdrop-filter: blur(5px);
-            display: none; /* Initially hidden */
-            justify-content: center;
-            align-items: center;
-            z-index: 10;
-        }
-        
-        /* --- FOOTER --- */
-        .page-footer {
-            padding: 1rem;
-            margin-top: 2rem;
+        @keyframes load8 {
+          0% { transform: rotate(0deg); }
+          100% { transform: rotate(360deg); }
         }
     </style>
 </head>
 
-<body>
-    <header class="page-header text-center">
-        <h1><i class="bi bi-geo-alt-fill"></i>Find Recycling Locations</h1>
-    </header>
+<body class="bg-gradient-to-br from-slate-50 to-gray-200 text-gray-800 antialiased">
 
-    <main class="container">
-        <div class="row g-4 align-items-stretch">
-            <!-- Form Column -->
-            <div class="col-lg-4 col-md-5">
-                <div class="content-panel d-flex flex-column justify-content-center">
-                    <form id="locationForm" class="custom-form">
-                        <div class="mb-4">
-                            <label for="location" class="form-label">Enter City</label>
-                            <input type="text" class="form-control" id="location" placeholder="e.g., Pekanbaru" value="Pekanbaru">
-                        </div>
-                        <div class="mb-4">
-                            <label for="category" class="form-label">Select Category</label>
-                            <select class="form-select" id="category">
-                                <option value="banksampah">Bank Sampah (Recycling Bank)</option>
-                                <option value="tps">Tempat Pembuangan Sampah (TPS)</option>
-                                <option value="TPA">Tempat Pembuangan Akhir (TPA)</option>
-                                <option value="sampah">Show All Waste Locations</option>
-                            </select>
-                        </div>
-                        <div class="d-grid">
-                            <button type="button" id="updateMapBtn" class="btn btn-primary btn-show-map" onclick="updateMap()">
-                                <i class="bi bi-search"></i> Show Map
-                            </button>
-                        </div>
-                    </form>
+    <div id="app" class="flex flex-col min-h-screen">
+        <!-- Header -->
+        <header class="bg-white/80 backdrop-blur-lg shadow-md sticky top-0 z-20">
+            <div class="container mx-auto px-4 sm:px-6 lg:px-8">
+                <div class="flex items-center justify-center py-4">
+                    <h1 class="flex items-center gap-3 text-2xl sm:text-3xl font-bold text-gray-800">
+                        <ion-icon name="leaf" class="text-green-500"></ion-icon>
+                        <span>EcoFinder</span>
+                    </h1>
                 </div>
             </div>
+        </header>
 
-            <!-- Map Column -->
-            <div class="col-lg-8 col-md-7">
-                <div class="map-container">
-                    <!-- Loading Spinner Overlay -->
-                    <div id="map-loader">
-                        <div class="spinner-border text-primary" role="status" style="width: 3rem; height: 3rem;">
-                            <span class="visually-hidden">Loading...</span>
-                        </div>
+        <!-- Main Content -->
+        <main class="flex-grow container mx-auto p-4 sm:p-6 lg:p-8">
+            <div class="grid grid-cols-1 lg:grid-cols-12 gap-8 h-full">
+
+                <!-- Left Panel: Controls & Results -->
+                <div class="lg:col-span-4 flex flex-col gap-8">
+                    <!-- Control Panel -->
+                    <div class="bg-white/70 backdrop-blur-sm p-6 rounded-2xl shadow-lg border border-white/50">
+                        <form id="locationForm">
+                            <div class="space-y-5">
+                                <div>
+                                    <label for="location" class="block text-sm font-semibold text-gray-700 mb-2">City or Area</label>
+                                    <input type="text" id="location" placeholder="e.g., Pekanbaru" class="w-full px-4 py-2.5 bg-white border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-shadow">
+                                </div>
+                                
+                                <div>
+                                    <label for="category" class="block text-sm font-semibold text-gray-700 mb-2">Category</label>
+                                    <select id="category" class="w-full px-4 py-2.5 bg-white border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-shadow">
+                                        <option value="Bank Sampah">Bank Sampah (Recycling Bank)</option>
+                                        <option value="Tempat Pembuangan Sampah">Tempat Pembuangan Sampah (TPS)</option>
+                                        <option value="Tempat Pembuangan Akhir">Tempat Pembuangan Akhir (TPA)</option>
+                                    </select>
+                                </div>
+                                
+                                <div class="flex flex-col sm:flex-row gap-3 pt-2">
+                                     <button type="button" id="useLocationBtn" class="flex-1 w-full bg-green-500 text-white font-bold py-3 px-4 rounded-lg hover:bg-green-600 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500 transition-all duration-300 transform hover:scale-105 flex items-center justify-center gap-2 disabled:bg-gray-400 disabled:cursor-not-allowed">
+                                        <ion-icon name="location-sharp"></ion-icon>
+                                        <span>Use My Location</span>
+                                    </button>
+                                    <button type="button" id="updateMapBtn" class="flex-1 w-full bg-blue-600 text-white font-bold py-3 px-4 rounded-lg hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 transition-all duration-300 transform hover:scale-105 flex items-center justify-center gap-2 disabled:bg-gray-400 disabled:cursor-not-allowed">
+                                        <ion-icon name="search-sharp"></ion-icon>
+                                        <span>Search</span>
+                                    </button>
+                                </div>
+                            </div>
+                        </form>
                     </div>
-                    <!-- Iframe for Google Map -->
-                    <iframe id="mapIframe"
-                        src="https://www.google.com/maps/embed?pb=!1m16!1m12!1m3!1d31732.412925122622!2d101.4267945!3d0.5282594!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!2m1!1sBank%20Sampah%20di%20Pekanbaru!5e1!3m2!1sid!2sid!4v1683005676790!&t=m"
-                        allowfullscreen="" loading="lazy" referrerpolicy="no-referrer-when-downgrade">
-                    </iframe>
+                    
+                    <!-- Results Panel -->
+                    <div id="results-panel" class="bg-white/70 backdrop-blur-sm p-6 rounded-2xl shadow-lg border border-white/50 flex-grow hidden">
+                        <h2 class="text-xl font-bold mb-4 text-gray-800">Results</h2>
+                        <div id="results-loader" class="flex justify-center items-center h-40">
+                             <div class="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
+                        </div>
+                        <p id="results-message" class="text-gray-500 text-center"></p>
+                        <ul id="results-list" class="space-y-3 max-h-[400px] lg:max-h-full overflow-y-auto pr-2">
+                           <!-- Results will be injected here by JavaScript -->
+                        </ul>
+                    </div>
+                </div>
+
+                <!-- Right Panel: Map -->
+                <div class="lg:col-span-8 h-[50vh] lg:h-auto min-h-[500px]">
+                    <div class="relative w-full h-full rounded-2xl shadow-xl overflow-hidden">
+                        <!-- Map Loading Overlay -->
+                        <div id="map-loader" class="absolute inset-0 bg-white/50 backdrop-blur-sm flex justify-center items-center z-10">
+                            <div class="animate-spin rounded-full h-16 w-16 border-b-4 border-blue-600"></div>
+                        </div>
+                        <!-- Google Map Iframe -->
+                        <iframe id="mapIframe" class="w-full h-full border-0" allowfullscreen="" loading="lazy" referrerpolicy="no-referrer-when-downgrade"></iframe>
+                    </div>
                 </div>
             </div>
-        </div>
-    </main>
-
-    <footer class="page-footer text-center">
-        <p class="small text-muted">Note: Search results may not include all locations.</p>
-    </footer>
-
-    <!-- JavaScript section -->
-    <script>
-        /*
-            MAP BREAKDOWN (EXCELLENT ANALYSIS - PRESERVED)
-            This breakdown shows how to manipulate the Google Maps embed URL without an API key.
-            URL: https://www.google.com/maps/embed?pb=!1m16!1m12!1m3!1d31732...
-            
-            Base URL: https://www.google.com/maps/embed?pb=
-            
-            Parameters after 'pb=':
-            !1m16 -> View Mode (16 = places)
-               !1m12 -> Parameter count
-                  !1m3 -> Start of map scale/position
-                     !1d... -> Zoom level (distance)
-                     !2d... -> Longitude (THIS IS WHAT WE CHANGE)
-                     !3d... -> Latitude (THIS IS WHAT WE CHANGE)
-                  !2m3 -> Start of map view angle
-                     !1f0, !2f0, !3f0 -> Map direction & tilt
-                  !3m2 -> Start of map size
-                     !1i1024, !2i768 -> Default pixel dimensions
-                  !4f13.1 -> Zoom factor
-               !2m1 -> Marker section
-                  !1s... -> Marker Name/Search Query (THIS IS WHAT WE CHANGE)
-               !5e1 -> Map type (1 = road)
-               ...and so on for language, version, etc.
-            
-            We primarily manipulate Longitude, Latitude, and the Search Query.
-        */
+        </main>
         
-        // Get references to DOM elements
-        const updateMapBtn = document.getElementById('updateMapBtn');
-        const mapLoader = document.getElementById('map-loader');
-        const mapIframe = document.getElementById('mapIframe');
+        <!-- Footer -->
+        <footer class="text-center py-4 mt-8">
+            <p class="text-sm text-gray-500">Note: Search results are provided by OpenStreetMap & Google Maps and may not be exhaustive.</p>
+        </footer>
+    </div>
 
-        function showLoadingState(isLoading) {
+    <script>
+        // --- DOM ELEMENT REFERENCES ---
+        const locationInput = document.getElementById('location');
+        const categorySelect = document.getElementById('category');
+        const updateMapBtn = document.getElementById('updateMapBtn');
+        const useLocationBtn = document.getElementById('useLocationBtn');
+        const mapIframe = document.getElementById('mapIframe');
+        const mapLoader = document.getElementById('map-loader');
+        const resultsPanel = document.getElementById('results-panel');
+        const resultsList = document.getElementById('results-list');
+        const resultsLoader = document.getElementById('results-loader');
+        const resultsMessage = document.getElementById('results-message');
+
+        // --- API & CONFIG ---
+        const OPENCAGE_API_KEY = '8db57c4a0aa24556813b53a8410823cf'; // Your OpenCage Geocoding API key
+
+        // --- CORE FUNCTIONS ---
+
+        /**
+         * Sets the loading state for the entire UI
+         * @param {boolean} isLoading - True to show loading indicators, false to hide them.
+         */
+        function setLoading(isLoading) {
+            updateMapBtn.disabled = isLoading;
+            useLocationBtn.disabled = isLoading;
+
             if (isLoading) {
                 mapLoader.style.display = 'flex';
-                updateMapBtn.disabled = true;
-                updateMapBtn.innerHTML = `<span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span> Loading...`;
+                resultsPanel.style.display = 'block';
+                resultsLoader.style.display = 'flex';
+                resultsList.innerHTML = '';
+                resultsMessage.textContent = '';
+                updateMapBtn.innerHTML = '<div class="btn-spinner"></div>';
             } else {
                 mapLoader.style.display = 'none';
-                updateMapBtn.disabled = false;
-                updateMapBtn.innerHTML = `<i class="bi bi-search"></i> Show Map`;
+                resultsLoader.style.display = 'none';
+                updateMapBtn.innerHTML = '<ion-icon name="search-sharp"></ion-icon> <span>Search</span>';
+            }
+        }
+
+        /**
+         * Fetches coordinates for a given location string (Geocoding)
+         * @param {string} location - The city or area to search for.
+         * @returns {Promise<{lat: number, lng: number}|null>}
+         */
+        async function getCoordsFromLocation(location) {
+            try {
+                const response = await fetch(`https://api.opencagedata.com/geocode/v1/json?q=${encodeURIComponent(location)}&key=${OPENCAGE_API_KEY}&language=en&pretty=1`);
+                const data = await response.json();
+                if (data.results && data.results.length > 0) {
+                    return data.results[0].geometry;
+                }
+                return null;
+            } catch (error) {
+                console.error("Geocoding API error:", error);
+                return null;
+            }
+        }
+
+        /**
+         * Fetches a list of places from OpenStreetMap (Nominatim) and displays them.
+         * @param {string} query - The full search query (e.g., "Bank Sampah in Pekanbaru").
+         * @param {number} lat - Latitude to search near.
+         * @param {number} lng - Longitude to search near.
+         */
+        async function fetchAndDisplayResults(query, lat, lng) {
+            try {
+                const response = await fetch(`https://nominatim.openstreetmap.org/search?q=${encodeURIComponent(query)}&format=json&viewbox=${lng-0.5},${lat+0.5},${lng+0.5},${lat-0.5}&bounded=1&limit=15`);
+                const places = await response.json();
+
+                resultsList.innerHTML = '';
+                if (places && places.length > 0) {
+                    resultsMessage.textContent = '';
+                    places.forEach(place => {
+                        const li = document.createElement('li');
+                        li.className = 'p-3 bg-white/50 rounded-lg hover:bg-blue-100 cursor-pointer transition-colors duration-200';
+                        li.innerHTML = `
+                            <div class="font-semibold text-blue-800">${place.display_name.split(',')[0]}</div>
+                            <div class="text-xs text-gray-600">${place.display_name.substring(place.display_name.indexOf(',') + 2)}</div>
+                        `;
+                        li.onclick = () => {
+                            // Highlight selected item
+                            document.querySelectorAll('#results-list li').forEach(item => item.classList.remove('bg-blue-200'));
+                            li.classList.add('bg-blue-200');
+                            // Recenter map on this specific location
+                            updateMapIframe(query, place.lat, place.lon, 15); // Higher zoom
+                        };
+                        resultsList.appendChild(li);
+                    });
+                } else {
+                    resultsMessage.textContent = 'No specific locations found in the list. The map may still show results.';
+                }
+            } catch (error) {
+                console.error("Nominatim API error:", error);
+                resultsMessage.textContent = 'Could not fetch list of results.';
             }
         }
         
-        async function updateMap() {
-            showLoadingState(true);
-
-            // Get values from the form
-            const locationInput = document.getElementById('location').value;
-            let category = document.getElementById('category').value;
-            let searchQuery = '';
-
-            // Build the search query string
-            if (category == 'tps') {
-                searchQuery = encodeURIComponent(`Tempat Pembuangan Sampah di ${locationInput}`);
-            } else if (category == 'banksampah') {
-                searchQuery = encodeURIComponent(`Bank Sampah di ${locationInput}`);
-            } else if (category == 'TPA') {
-                searchQuery = encodeURIComponent(`Tempat Pembuangan Akhir di ${locationInput}`);
-            } else { // 'sampah'
-                searchQuery = encodeURIComponent(`Tempat Sampah di ${locationInput}`);
-            }
-
-            // Set default coordinates (e.g., center of Pekanbaru)
-            let latitude = 0.5187316;
-            let longitude = 101.4323738;
-
-            try {
-                // If a location is provided, use Geocoding API to get its coordinates
-                if (locationInput) {
-                    const response = await fetch(`https://api.opencagedata.com/geocode/v1/json?q=${encodeURIComponent(locationInput)}&key=8db57c4a0aa24556813b53a8410823cf`);
-                    const data = await response.json();
-                    if (data.results.length > 0) {
-                        latitude = data.results[0].geometry.lat;
-                        longitude = data.results[0].geometry.lng;
-                    } else {
-                       console.warn("Could not find coordinates for the location:", locationInput);
-                    }
-                }
-                // Update the map URL with the new coordinates and query
-                updateMapIframe(searchQuery, latitude, longitude);
-            } catch (error) {
-                console.error('Error fetching geocoding data:', error);
-                alert('Could not fetch location data. Please try again.');
-                showLoadingState(false); // Hide loader on error
-            }
-        }
-
-        function updateMapIframe(searchQuery, latitude, longitude) {
-            // Wait for the iframe to fully load before hiding the spinner
+        /**
+         * Updates the Google Maps iframe with new coordinates and search query.
+         * @param {string} query - The encoded search query.
+         * @param {number} lat - The latitude for the map center.
+         * @param {number} lng - The longitude for the map center.
+         * @param {number} [zoom=13] - The map zoom level.
+         */
+        function updateMapIframe(query, lat, lng, zoom = 13) {
+            // A more modern approach to build the embed URL.
+            const params = new URLSearchParams({
+                q: query, // Main search query
+                t: '',    // Map type (standard)
+                z: zoom,  // Zoom level
+                ie: 'UTF8',
+                iwloc: '',
+                output: 'embed'
+            });
+            const mapSrc = `https://maps.google.com/maps?${params.toString()}&ll=${lat},${lng}`;
+            
+            // Wait for iframe to load before hiding spinner
             mapIframe.onload = () => {
-                showLoadingState(false);
+                setLoading(false);
             };
-            
-            // Construct the new map URL. Using a modern theme 'm' (default) or 'k' (dark).
-            const mapTheme = 'm';
-            const newSrc = `https://www.google.com/maps/embed?pb=!1m16!1m12!1m3!1d63464.82585024524!2d${longitude}!3d${latitude}!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!2m1!1s${searchQuery}!5e0!3m2!1sen!2sid&t=${mapTheme}`;
-            
-            mapIframe.src = newSrc;
+            mapIframe.src = mapSrc;
         }
 
-        // Trigger the map update on initial page load with default values
+        /**
+         * Main function to trigger the search.
+         */
+        async function handleSearch() {
+            const location = locationInput.value.trim();
+            if (!location) {
+                alert("Please enter a city or area.");
+                return;
+            }
+            
+            setLoading(true);
+            const category = categorySelect.value;
+            const fullQuery = `${category} in ${location}`;
+            
+            const coords = await getCoordsFromLocation(location);
+            
+            if (coords) {
+                updateMapIframe(fullQuery, coords.lat, coords.lng);
+                await fetchAndDisplayResults(fullQuery, coords.lat, coords.lng);
+            } else {
+                alert("Could not find the specified location. Please try a different name.");
+                setLoading(false);
+            }
+        }
+        
+        /**
+         * Handles the "Use My Location" button click.
+         */
+        async function handleUseLocation() {
+            if (!navigator.geolocation) {
+                alert("Geolocation is not supported by your browser.");
+                return;
+            }
+
+            setLoading(true);
+            useLocationBtn.innerHTML = '<div class="btn-spinner"></div>';
+            
+            navigator.geolocation.getCurrentPosition(async (position) => {
+                const { latitude, longitude } = position.coords;
+
+                // Reverse geocode to get city name
+                try {
+                    const response = await fetch(`https://api.opencagedata.com/geocode/v1/json?q=${latitude}+${longitude}&key=${OPENCAGE_API_KEY}`);
+                    const data = await response.json();
+                    if (data.results && data.results.length > 0) {
+                        const components = data.results[0].components;
+                        const city = components.city || components.town || components.village || 'your current location';
+                        locationInput.value = city;
+                    }
+                } catch (error) {
+                    console.error("Reverse geocoding error:", error);
+                    locationInput.value = "Current Location";
+                }
+                
+                const category = categorySelect.value;
+                const fullQuery = `${category} near me`;
+                updateMapIframe(fullQuery, latitude, longitude);
+                await fetchAndDisplayResults(fullQuery, latitude, longitude);
+
+                useLocationBtn.innerHTML = '<ion-icon name="location-sharp"></ion-icon> <span>Use My Location</span>';
+
+            }, (error) => {
+                console.error("Geolocation error:", error);
+                alert("Unable to retrieve your location. Please ensure you have granted permission.");
+                setLoading(false);
+                useLocationBtn.innerHTML = '<ion-icon name="location-sharp"></ion-icon> <span>Use My Location</span>';
+            });
+        }
+
+        // --- EVENT LISTENERS ---
         document.addEventListener('DOMContentLoaded', () => {
-            updateMap();
+            locationInput.value = "Pekanbaru"; // Set initial default value
+            handleSearch(); // Perform initial search on load
+        });
+
+        updateMapBtn.addEventListener('click', handleSearch);
+        useLocationBtn.addEventListener('click', handleUseLocation);
+        locationForm.addEventListener('submit', (e) => {
+            e.preventDefault();
+            handleSearch();
         });
 
     </script>
-    
-    <!-- Bootstrap 5 JS -->
-    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js" integrity="sha384-C6RzsynM9kWDrMNeT87bh95OGNyZPhcTNXj1NW7RuBCsyN/o0jlpcV8Qyq46cDfL" crossorigin="anonymous"></script>
 </body>
-
 </html>
