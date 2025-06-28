@@ -1,0 +1,265 @@
+<!DOCTYPE html>
+<html lang="en" class="h-full">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>EcoFinder | Hybrid Edition (Google Data + Leaflet Map)</title>
+    
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <script type="module" src="https://unpkg.com/ionicons@7.1.0/dist/ionicons/ionicons.esm.js"></script>
+    <script nomodule src="https://unpkg.com/ionicons@7.1.0/dist/ionicons/ionicons.js"></script>
+
+    <!-- Menggunakan Leaflet.js untuk tampilan peta -->
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+
+    <style>
+        body { font-family: 'Poppins', sans-serif; background-color: #f8fafc; }
+        .bento-card {
+            background-color: rgba(255, 255, 255, 0.6); backdrop-filter: blur(12px);
+            border: 1px solid rgba(255, 255, 255, 0.3);
+            transition: transform 0.3s ease, box-shadow 0.3s ease;
+        }
+        .bento-card-interactive:hover {
+            transform: scale(1.02);
+            box-shadow: 0 20px 25px -5px rgb(0 0 0 / 0.1), 0 8px 10px -6px rgb(0 0 0 / 0.1);
+        }
+        #results-list::-webkit-scrollbar { width: 5px; }
+        #results-list::-webkit-scrollbar-track { background: transparent; }
+        #results-list::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 10px; }
+        .btn-spinner, .btn-spinner:after { border-radius: 50%; width: 1.25em; height: 1.25em; }
+        .btn-spinner { font-size: 10px; position: relative; text-indent: -9999em; border-top: 0.2em solid rgba(255, 255, 255, 0.2); border-right: 0.2em solid rgba(255, 255, 255, 0.2); border-bottom: 0.2em solid rgba(255, 255, 255, 0.2); border-left: 0.2em solid #ffffff; transform: translateZ(0); animation: load8 1.1s infinite linear; }
+        @keyframes load8 { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+        .leaflet-control-attribution a { color: #0078A8; }
+    </style>
+</head>
+
+<body class="bg-slate-100 text-gray-800 antialiased">
+    <div id="app" class="flex flex-col min-h-screen">
+        <header class="w-full py-6">
+            <div class="container mx-auto px-4 text-center">
+                <h1 class="flex items-center justify-center gap-3 text-3xl sm:text-4xl font-bold">
+                    <ion-icon name="leaf" class="text-green-500"></ion-icon>
+                    <span>EcoFinder</span>
+                </h1>
+                <p class="text-gray-500 mt-1">Powered by Google Maps Data</p>
+            </div>
+        </header>
+
+        <main class="flex-grow container mx-auto p-4 sm:p-6 lg:p-8">
+            <div class="grid grid-cols-1 lg:grid-cols-3 gap-6 h-full">
+                <!-- Map Card -->
+                <div class="bento-card lg:col-span-2 lg:row-span-3 rounded-3xl shadow-lg p-2 min-h-[60vh] lg:min-h-0 flex flex-col">
+                    <div class="relative w-full h-full rounded-2xl overflow-hidden">
+                        <div id="map-loader" class="absolute inset-0 bg-white/50 backdrop-blur-sm flex justify-center items-center z-10">
+                            <div class="animate-spin rounded-full h-16 w-16 border-b-4 border-blue-600"></div>
+                        </div>
+                        <div id="map" class="w-full h-full z-0"></div>
+                    </div>
+                </div>
+
+                <!-- Control Panel Card -->
+                <div class="bento-card bento-card-interactive lg:col-span-1 lg:row-span-1 rounded-3xl shadow-lg p-6">
+                    <form id="locationForm" onsubmit="event.preventDefault(); handleSearch();" class="flex flex-col h-full">
+                         <h2 class="text-xl font-bold mb-4">Find Locations</h2>
+                        <div class="space-y-4 flex-grow">
+                             <div>
+                                <label for="location" class="block text-sm font-semibold text-gray-700 mb-1.5">City or Area</label>
+                                <input type="text" id="location" placeholder="e.g., Pekanbaru" class="w-full px-4 py-2.5 bg-white border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500">
+                            </div>
+                            <div>
+                                <label for="category" class="block text-sm font-semibold text-gray-700 mb-1.5">Category</label>
+                                <select id="category" class="w-full px-4 py-2.5 bg-white border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500">
+                                    <option value="Bank Sampah">Bank Sampah</option>
+                                    <option value="Tempat Pembuangan Sampah">TPS</option>
+                                    <option value="Tempat Pembuangan Akhir">TPA</option>
+                                </select>
+                            </div>
+                        </div>
+                         <div class="flex flex-col sm:flex-row gap-3 pt-4">
+                            <button type="button" id="useLocationBtn" class="flex-1 bg-green-500 text-white font-bold py-3 px-4 rounded-lg hover:bg-green-600 flex items-center justify-center gap-2 disabled:bg-gray-400">
+                                <ion-icon name="location-sharp"></ion-icon>
+                                <span>My Location</span>
+                            </button>
+                            <button type="submit" id="updateMapBtn" class="flex-1 bg-blue-600 text-white font-bold py-3 px-4 rounded-lg hover:bg-blue-700 flex items-center justify-center gap-2 disabled:bg-gray-400">
+                                <ion-icon name="search-sharp"></ion-icon>
+                                <span>Search</span>
+                            </button>
+                        </div>
+                    </form>
+                </div>
+                
+                <!-- Results Panel Card -->
+                <div id="results-panel" class="bento-card bento-card-interactive lg:col-span-1 lg:row-span-2 rounded-3xl shadow-lg p-6 flex flex-col min-h-[400px]">
+                     <div class="flex justify-between items-center mb-4 flex-shrink-0">
+                        <h2 class="text-xl font-bold">Locations Found</h2>
+                        <p id="stats-number" class="text-xl font-bold text-blue-600">0</p>
+                    </div>
+                    <div class="relative flex-grow overflow-hidden">
+                        <div id="results-loader" class="absolute inset-0 flex justify-center items-center bg-white/30 backdrop-blur-sm z-10 hidden">
+                             <div class="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
+                        </div>
+                        <p id="results-message" class="text-gray-500 text-center p-4"></p>
+                        <ul id="results-list" class="space-y-3 h-full overflow-y-auto pr-2"></ul>
+                    </div>
+                </div>
+            </div>
+        </main>
+    </div>
+    
+    <script>
+        // --- DOM ELEMENT REFERENCES ---
+        const locationInput = document.getElementById('location');
+        const categorySelect = document.getElementById('category');
+        const updateMapBtn = document.getElementById('updateMapBtn');
+        const useLocationBtn = document.getElementById('useLocationBtn');
+        const mapLoader = document.getElementById('map-loader');
+        
+        const resultsList = document.getElementById('results-list');
+        const resultsLoader = document.getElementById('results-loader');
+        const resultsMessage = document.getElementById('results-message');
+        const statsNumber = document.getElementById('stats-number');
+
+        // --- Leaflet.js Map Variables ---
+        let map;
+        let markersGroup;
+
+        // --- API KEY ---
+        // PERHATIAN: Ganti dengan API Key Anda dari SerpApi.com
+        const SERPAPI_KEY = "f8cfaad8547897471eb7b49fb86114796aba9df4e085a75e8df6dbf6654475db";
+        const CORS_ANYWHERE_PROXY = "https://cors-anywhere.herokuapp.com/"; // Proxy untuk menghindari error CORS di localhost
+
+        function initMap() {
+            map = L.map('map').setView([0.5071, 101.4478], 12);
+            L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+                maxZoom: 19,
+                attribution: '© <a href="http://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
+            }).addTo(map);
+            markersGroup = L.layerGroup().addTo(map);
+            locationInput.value = "Pekanbaru";
+            handleSearch();
+        }
+        
+        function setLoadingState(isLoading, isGeoLoading = false) {
+             updateMapBtn.disabled = isLoading;
+            useLocationBtn.disabled = isLoading;
+            resultsLoader.style.display = isLoading ? 'flex' : 'none';
+            mapLoader.style.display = isLoading ? 'flex' : 'none';
+            if (isLoading) {
+                clearResults();
+                statsNumber.textContent = '...';
+                resultsMessage.textContent = 'Contacting our assistant...';
+                const btn = isGeoLoading ? useLocationBtn : updateMapBtn;
+                btn.innerHTML = '<div class="btn-spinner"></div>';
+            } else {
+                updateMapBtn.innerHTML = `<ion-icon name="search-sharp"></ion-icon> <span>Search</span>`;
+                useLocationBtn.innerHTML = `<ion-icon name="location-sharp"></ion-icon> <span>My Location</span>`;
+            }
+        }
+        
+        async function handleSearch(lat, lon) {
+            setLoadingState(true);
+            const query = `${categorySelect.value} in ${locationInput.value}`;
+            
+            // Membuat URL untuk SerpApi
+            // Parameter `ll` (koordinat) akan memberikan hasil yang lebih akurat
+            let apiUrl = `${CORS_ANYWHERE_PROXY}https://serpapi.com/search.json?engine=google_maps&q=${encodeURIComponent(query)}&type=search&api_key=${SERPAPI_KEY}`;
+            if(lat && lon){
+                apiUrl += `&ll=@${lat},${lon},12z`; // Menambahkan info koordinat jika ada
+            }
+
+            try {
+                const response = await fetch(apiUrl);
+                if (!response.ok) {
+                    throw new Error(`API request failed with status ${response.status}`);
+                }
+                const data = await response.json();
+
+                if (data && data.local_results) {
+                    displayResults(data.local_results);
+                } else {
+                    resultsMessage.textContent = "No locations found by our assistant.";
+                    if (data.error) resultsMessage.textContent += ` (Reason: ${data.error})`;
+                    statsNumber.textContent = '0';
+                }
+
+            } catch (error) {
+                console.error("Error fetching from SerpApi:", error);
+                resultsMessage.textContent = "Failed to fetch data. Check your API key or CORS proxy.";
+                 // Jika Anda dapat error CORS, kunjungi https://cors-anywhere.herokuapp.com/ dan klik tombol request
+            } finally {
+                setLoadingState(false);
+            }
+        }
+        
+        function displayResults(places) {
+            clearResults();
+            const latLngs = [];
+
+            statsNumber.textContent = places.length;
+            resultsMessage.textContent = '';
+
+            places.forEach(place => {
+                const lat = place.gps_coordinates?.latitude;
+                const lon = place.gps_coordinates?.longitude;
+                
+                if (lat && lon) {
+                    const latLng = [lat, lon];
+                    latLngs.push(latLng);
+
+                    const marker = L.marker(latLng).addTo(markersGroup);
+                    marker.bindPopup(`<strong>${place.title}</strong><br>${place.address || ''}`);
+                    
+                    const li = document.createElement('li');
+                    li.className = 'p-3 bg-white/50 rounded-lg hover:bg-blue-100 cursor-pointer transition-colors';
+                    li.innerHTML = `
+                        <div class="font-semibold text-blue-800">${place.title}</div>
+                        <div class="text-xs text-gray-600">${place.address || 'No address provided'}</div>
+                    `;
+                    resultsList.appendChild(li);
+                    
+                    marker.on('click', () => { map.setView(latLng, 15); highlightListItem(li); });
+                    li.addEventListener('click', () => { marker.openPopup(); map.setView(latLng, 15); highlightListItem(li); });
+                }
+            });
+
+            if (latLngs.length > 0) {
+                map.fitBounds(latLngs, { padding: [50, 50] });
+            }
+        }
+
+        function highlightListItem(selectedLi) {
+            document.querySelectorAll('#results-list li').forEach(item => {
+                item.classList.remove('!bg-blue-200', 'border-blue-400', 'border');
+            });
+            selectedLi.classList.add('!bg-blue-200', 'border-blue-400', 'border');
+            selectedLi.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        }
+
+        function clearResults() {
+            markersGroup.clearLayers();
+            resultsList.innerHTML = '';
+        }
+
+        function handleUseLocation() {
+            if (!navigator.geolocation) return alert("Geolocation is not supported.");
+            
+            navigator.geolocation.getCurrentPosition(async (position) => {
+                const { latitude, longitude } = position.coords;
+                // Cukup gunakan koordinat untuk pencarian, nama tidak perlu diubah
+                locationInput.value = "Current Location";
+                handleSearch(latitude, longitude); // Kirim koordinat ke fungsi pencarian
+            }, (error) => {
+                alert("Unable to retrieve your location.");
+            });
+        }
+        
+        document.addEventListener('DOMContentLoaded', initMap);
+        useLocationBtn.addEventListener('click', handleUseLocation);
+    </script>
+</body>
+</html>
