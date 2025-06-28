@@ -1,0 +1,95 @@
+<!DOCTYPE html>
+<html lang="en" class="bg-slate-100 lg:h-full">
+<head>
+    <!-- ... (Tidak ada perubahan di sini) ... -->
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>EcoFinder | Final Version</title>
+    
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    
+    <!-- Google Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    
+    <!-- Ionicons -->
+    <script type="module" src="https://unpkg.com/ionicons@7.1.0/dist/ionicons/ionicons.esm.js"></script>
+    <script nomodule src="https://unpkg.com/ionicons@7.1.0/dist/ionicons/ionicons.js"></script>
+    
+    <!-- Link ke file CSS eksternal -->
+    <link rel="stylesheet" href="css/style.css">
+</head>
+
+<body class="text-gray-800 antialiased lg:h-full lg:flex lg:flex-col">
+    <div id="app" class="flex flex-col w-full lg:h-full">
+        <!-- Header -->
+        <header class="w-full py-4 flex-shrink-0">
+            <!-- PERUBAHAN: Header sekarang menggunakan flexbox untuk tata letak -->
+            <div class="container mx-auto px-4 flex justify-between items-center">
+                <!-- Kiri: Kredit -->
+                <div class="text-left">
+                    <p class="text-sm font-semibold text-gray-700">Open Source Code</p>
+                    <p class="text-xs text-gray-500">By Gekkai Project</p>
+                </div>
+                <!-- Kanan: Judul Aplikasi -->
+                <div class="text-right">
+                    <h1 class="flex items-center justify-end gap-2 text-2xl sm:text-3xl font-bold">
+                        <span>EcoFinder</span>
+                        <ion-icon name="leaf" class="text-green-500"></ion-icon>
+                    </h1>
+                </div>
+            </div>
+        </header>
+
+        <!-- Konten Utama (Tidak ada perubahan di sini) -->
+        <main class="flex-grow container mx-auto p-4 sm:p-6 lg:p-8 lg:overflow-hidden">
+            <!-- ... sisa main content sama persis ... -->
+            <div class="grid grid-cols-1 lg:grid-cols-3 gap-6 lg:h-full">
+                <!-- Kartu Peta -->
+                <div class="bento-card lg:col-span-2 lg:row-span-2 rounded-3xl shadow-lg p-2 min-h-[50vh] lg:min-h-0 flex flex-col">
+                    <div class="relative w-full h-full rounded-2xl overflow-hidden">
+                        <div id="map-loader" class="absolute inset-0 bg-white/50 backdrop-blur-sm flex justify-center items-center z-10">
+                            <div class="animate-spin rounded-full h-16 w-16 border-b-4 border-blue-600"></div>
+                        </div>
+                        <iframe id="mapIframe" class="w-full h-full border-0" allowfullscreen loading="lazy" referrerpolicy="no-referrer-when-downgrade"></iframe>
+                    </div>
+                </div>
+
+                <!-- Kartu Kontrol -->
+                <div class="bento-card bento-card-interactive lg:row-span-1 rounded-3xl shadow-lg p-6 flex flex-col relative z-20">
+                    <form id="locationForm" class="flex flex-col h-full">
+                        <h2 class="text-xl font-bold mb-4 flex-shrink-0">Find Locations</h2>
+                        <div class="space-y-4 flex-grow">
+                            <div><label for="location" class="block text-sm font-semibold text-gray-700 mb-1.5">City or Area</label><input type="text" id="location" placeholder="e.g., Pekanbaru" class="w-full px-4 py-2.5 bg-white border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"></div>
+                            <div><label for="category" class="block text-sm font-semibold text-gray-700 mb-1.5">Category</label><select id="category" class="w-full px-4 py-2.5 bg-white border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"><option value="Bank Sampah">Bank Sampah</option><option value="Tempat Pembuangan Sampah">TPS</option><option value="Tempat Pembuangan Akhir">TPA</option></select></div>
+                        </div>
+                        <div class="flex flex-col sm:flex-row gap-3 pt-4 flex-shrink-0">
+                            <button type="button" id="useLocationBtn" class="flex-1 bg-green-500 text-white font-bold py-3 px-4 rounded-lg hover:bg-green-600 flex items-center justify-center gap-2 disabled:bg-gray-400"><ion-icon name="location-sharp"></ion-icon><span>My Location</span></button>
+                            <button type="submit" id="updateMapBtn" class="flex-1 bg-blue-600 text-white font-bold py-3 px-4 rounded-lg hover:bg-blue-700 flex items-center justify-center gap-2 disabled:bg-gray-400"><ion-icon name="search-sharp"></ion-icon><span>Search</span></button>
+                        </div>
+                    </form>
+                </div>
+                
+                <!-- Kartu Hasil -->
+                <div id="results-panel" class="bento-card bento-card-interactive lg:row-span-1 rounded-3xl shadow-lg p-6 flex flex-col min-h-[40vh] lg:min-h-0 relative z-20">
+                    <div class="flex justify-between items-center mb-4 flex-shrink-0">
+                        <h2 class="text-xl font-bold">Locations Found</h2>
+                        <p id="stats-number" class="text-xl font-bold text-blue-600">0</p>
+                    </div>
+                    <div class="relative flex-grow overflow-hidden">
+                        <div id="results-loader" class="absolute inset-0 flex justify-center items-center bg-white/30 backdrop-blur-sm z-10 hidden"><div class="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div></div>
+                        <div id="results-list-container" class="pr-2 lg:h-full">
+                            <p id="results-message" class="text-gray-500 text-center p-4"></p>
+                            <ul id="results-list" class="space-y-3"></ul>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </main>
+    </div>
+    
+    <script src="js/script.js"></script>
+</body>
+</html>
