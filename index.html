@@ -4,313 +4,288 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>EcoFinder | Modern Recycling Locator</title>
+    <title>EcoFinder | Open-Source Edition</title>
     
-    <!-- Tailwind CSS JIT CDN -->
     <script src="https://cdn.tailwindcss.com"></script>
-
-    <!-- Google Fonts: Poppins -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet">
-    
-    <!-- Ionicons for modern icons -->
     <script type="module" src="https://unpkg.com/ionicons@7.1.0/dist/ionicons/ionicons.esm.js"></script>
     <script nomodule src="https://unpkg.com/ionicons@7.1.0/dist/ionicons/ionicons.js"></script>
 
+    <!-- PERUBAHAN: Menambahkan Leaflet.js CSS dan JS -->
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" crossorigin=""/>
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin=""></script>
+
     <style>
-        body { 
-            font-family: 'Poppins', sans-serif; 
-            background-color: #f8fafc; /* A light gray as a base */
-        }
+        body { font-family: 'Poppins', sans-serif; background-color: #f8fafc; }
         .bento-card {
-            background-color: rgba(255, 255, 255, 0.6);
-            backdrop-filter: blur(12px);
+            background-color: rgba(255, 255, 255, 0.6); backdrop-filter: blur(12px);
             border: 1px solid rgba(255, 255, 255, 0.3);
             transition: transform 0.3s ease, box-shadow 0.3s ease;
         }
-        .bento-card:hover {
+        .bento-card-interactive:hover {
             transform: scale(1.02);
             box-shadow: 0 20px 25px -5px rgb(0 0 0 / 0.1), 0 8px 10px -6px rgb(0 0 0 / 0.1);
         }
-        /* Custom scrollbar for results list */
         #results-list::-webkit-scrollbar { width: 5px; }
         #results-list::-webkit-scrollbar-track { background: transparent; }
         #results-list::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 10px; }
-        #results-list::-webkit-scrollbar-thumb:hover { background: #94a3b8; }
-
         .btn-spinner, .btn-spinner:after { border-radius: 50%; width: 1.25em; height: 1.25em; }
         .btn-spinner { font-size: 10px; position: relative; text-indent: -9999em; border-top: 0.2em solid rgba(255, 255, 255, 0.2); border-right: 0.2em solid rgba(255, 255, 255, 0.2); border-bottom: 0.2em solid rgba(255, 255, 255, 0.2); border-left: 0.2em solid #ffffff; transform: translateZ(0); animation: load8 1.1s infinite linear; }
         @keyframes load8 { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+        /* Fix Leaflet attribution link color */
+        .leaflet-control-attribution a { color: #0078A8; }
     </style>
 </head>
 
 <body class="bg-slate-100 text-gray-800 antialiased">
-
     <div id="app" class="flex flex-col min-h-screen">
-        <!-- Header -->
         <header class="w-full py-6">
             <div class="container mx-auto px-4 sm:px-6 lg:px-8 text-center">
-                <h1 class="flex items-center justify-center gap-3 text-3xl sm:text-4xl font-bold text-gray-800">
+                <h1 class="flex items-center justify-center gap-3 text-3xl sm:text-4xl font-bold">
                     <ion-icon name="leaf" class="text-green-500"></ion-icon>
                     <span>EcoFinder</span>
                 </h1>
-                <p class="text-gray-500 mt-1">Your modern guide to local recycling.</p>
+                <p class="text-gray-500 mt-1">Free & Open-Source Recycling Locator</p>
             </div>
         </header>
 
-        <!-- Main Content Grid -->
         <main class="flex-grow container mx-auto p-4 sm:p-6 lg:p-8">
-            <div class="grid grid-cols-1 lg:grid-cols-3 lg:grid-rows-3 gap-6 h-full">
-
-                <!-- Map Card (Main Component) -->
-                <div class="bento-card lg:col-span-2 lg:row-span-2 rounded-3xl shadow-lg p-2 min-h-[60vh] lg:min-h-0 flex flex-col">
+            <div class="grid grid-cols-1 lg:grid-cols-3 gap-6 h-full">
+                <!-- Map Card -->
+                <div class="bento-card lg:col-span-2 lg:row-span-3 rounded-3xl shadow-lg p-2 min-h-[60vh] lg:min-h-0 flex flex-col">
                     <div class="relative w-full h-full rounded-2xl overflow-hidden">
                         <div id="map-loader" class="absolute inset-0 bg-white/50 backdrop-blur-sm flex justify-center items-center z-10">
                             <div class="animate-spin rounded-full h-16 w-16 border-b-4 border-blue-600"></div>
                         </div>
-                        <iframe id="mapIframe" class="w-full h-full border-0" allowfullscreen="" loading="lazy" referrerpolicy="no-referrer-when-downgrade"></iframe>
+                        <div id="map" class="w-full h-full z-0"></div>
                     </div>
                 </div>
 
                 <!-- Control Panel Card -->
-                <div class="bento-card lg:col-span-1 lg:row-span-1 rounded-3xl shadow-lg p-6">
+                <div class="bento-card bento-card-interactive lg:col-span-1 lg:row-span-1 rounded-3xl shadow-lg p-6">
                     <form id="locationForm" onsubmit="event.preventDefault(); handleSearch();" class="flex flex-col h-full">
-                        <h2 class="text-xl font-bold mb-4 text-gray-800">Find Locations</h2>
+                        <h2 class="text-xl font-bold mb-4">Find Locations</h2>
                         <div class="space-y-4 flex-grow">
-                            <div>
+                             <div>
                                 <label for="location" class="block text-sm font-semibold text-gray-700 mb-1.5">City or Area</label>
-                                <input type="text" id="location" placeholder="e.g., Pekanbaru" class="w-full px-4 py-2.5 bg-white border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-shadow">
+                                <input type="text" id="location" placeholder="e.g., Pekanbaru" class="w-full px-4 py-2.5 bg-white border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500">
                             </div>
-                            
                             <div>
                                 <label for="category" class="block text-sm font-semibold text-gray-700 mb-1.5">Category</label>
-                                <select id="category" class="w-full px-4 py-2.5 bg-white border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-shadow">
-                                    <option value="Bank Sampah">Bank Sampah (Recycling Bank)</option>
-                                    <option value="Tempat Pembuangan Sampah">Tempat Pembuangan Sampah (TPS)</option>
-                                    <option value="Tempat Pembuangan Akhir">Tempat Pembuangan Akhir (TPA)</option>
+                                <select id="category" class="w-full px-4 py-2.5 bg-white border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500">
+                                    <option value="Bank Sampah">Bank Sampah</option>
+                                    <option value="Tempat Pembuangan Sampah">TPS</option>
+                                    <option value="Tempat Pembuangan Akhir">TPA</option>
                                 </select>
                             </div>
                         </div>
-                        
-                        <div class="flex flex-col sm:flex-row gap-3 pt-4">
-                             <button type="button" id="useLocationBtn" class="flex-1 bg-green-500 text-white font-bold py-3 px-4 rounded-lg hover:bg-green-600 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500 transition-all duration-300 flex items-center justify-center gap-2 disabled:bg-gray-400 disabled:cursor-not-allowed">
+                         <div class="flex flex-col sm:flex-row gap-3 pt-4">
+                            <button type="button" id="useLocationBtn" class="flex-1 bg-green-500 text-white font-bold py-3 px-4 rounded-lg hover:bg-green-600 flex items-center justify-center gap-2 disabled:bg-gray-400">
                                 <ion-icon name="location-sharp"></ion-icon>
                                 <span>My Location</span>
                             </button>
-                            <button type="submit" id="updateMapBtn" class="flex-1 bg-blue-600 text-white font-bold py-3 px-4 rounded-lg hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 transition-all duration-300 flex items-center justify-center gap-2 disabled:bg-gray-400 disabled:cursor-not-allowed">
+                            <button type="submit" id="updateMapBtn" class="flex-1 bg-blue-600 text-white font-bold py-3 px-4 rounded-lg hover:bg-blue-700 flex items-center justify-center gap-2 disabled:bg-gray-400">
                                 <ion-icon name="search-sharp"></ion-icon>
                                 <span>Search</span>
                             </button>
                         </div>
                     </form>
                 </div>
-
+                
                 <!-- Results Panel Card -->
-                <div id="results-panel" class="bento-card lg:col-span-1 lg:row-span-2 rounded-3xl shadow-lg p-6 flex flex-col min-h-[400px]">
-                    <h2 class="text-xl font-bold mb-4 text-gray-800 flex-shrink-0">Nearby Locations</h2>
+                <div id="results-panel" class="bento-card bento-card-interactive lg:col-span-1 lg:row-span-2 rounded-3xl shadow-lg p-6 flex flex-col min-h-[400px]">
+                     <div class="flex justify-between items-center mb-4 flex-shrink-0">
+                        <h2 class="text-xl font-bold">Locations Found</h2>
+                        <p id="stats-number" class="text-xl font-bold text-blue-600">0</p>
+                    </div>
                     <div class="relative flex-grow overflow-hidden">
-                        <div id="results-loader" class="absolute inset-0 flex justify-center items-center bg-white/30 backdrop-blur-sm z-10">
+                        <div id="results-loader" class="absolute inset-0 flex justify-center items-center bg-white/30 backdrop-blur-sm z-10 hidden">
                              <div class="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
                         </div>
                         <p id="results-message" class="text-gray-500 text-center p-4"></p>
-                        <ul id="results-list" class="space-y-3 h-full overflow-y-auto pr-2">
-                           <!-- Results will be injected here by JavaScript -->
-                        </ul>
+                        <ul id="results-list" class="space-y-3 h-full overflow-y-auto pr-2"></ul>
                     </div>
                 </div>
-
-                <!-- Current Search Card -->
-                <div id="current-search-card" class="bento-card lg:col-span-1 lg:row-span-1 rounded-3xl shadow-lg p-6 flex flex-col justify-center">
-                    <p class="text-sm font-semibold text-gray-500 uppercase tracking-wider">Showing results for</p>
-                    <p id="current-search-text" class="text-2xl font-bold text-blue-800 truncate">...</p>
-                </div>
-
-                <!-- Stats Card -->
-                <div id="stats-card" class="bento-card lg:col-span-1 lg:row-span-1 rounded-3xl shadow-lg p-6 flex items-center gap-4 bg-green-500 text-white hover:bg-green-600">
-                    <ion-icon name="stats-chart" class="text-5xl opacity-80"></ion-icon>
-                    <div>
-                        <p id="stats-number" class="text-4xl font-bold">0</p>
-                        <p class="font-light">Locations Found</p>
-                    </div>
-                </div>
-
             </div>
         </main>
-        
-        <!-- Footer -->
-        <footer class="text-center py-6 mt-8">
-            <p class="text-sm text-gray-500">Note: Search results are from OpenStreetMap & Google Maps and may not be exhaustive.</p>
-        </footer>
     </div>
-
+    
     <script>
         // --- DOM ELEMENT REFERENCES ---
         const locationInput = document.getElementById('location');
         const categorySelect = document.getElementById('category');
         const updateMapBtn = document.getElementById('updateMapBtn');
         const useLocationBtn = document.getElementById('useLocationBtn');
-        const mapIframe = document.getElementById('mapIframe');
         const mapLoader = document.getElementById('map-loader');
         
-        const resultsPanel = document.getElementById('results-panel');
         const resultsList = document.getElementById('results-list');
         const resultsLoader = document.getElementById('results-loader');
         const resultsMessage = document.getElementById('results-message');
-        
-        const currentSearchText = document.getElementById('current-search-text');
         const statsNumber = document.getElementById('stats-number');
 
-        // --- API & CONFIG ---
-        const OPENCAGE_API_KEY = '6dc4a36f60c94726a58bb7cca2f0c5fd'; 
+        // --- Leaflet.js Map Variables ---
+        let map;
+        let markersGroup; // Layer group to manage markers easily
 
-        // --- CORE FUNCTIONS ---
+        function initMap() {
+            map = L.map('map').setView([0.5071, 101.4478], 12); // Default to Pekanbaru
+            
+            L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+                maxZoom: 19,
+                attribution: '© <a href="http://www.openstreetmap.org/copyright">OpenStreetMap</a>'
+            }).addTo(map);
+
+            markersGroup = L.layerGroup().addTo(map);
+
+            // Initial search on load
+            locationInput.value = "Pekanbaru";
+            handleSearch();
+        }
+        
         function setLoadingState(isLoading, isGeoLoading = false) {
-            updateMapBtn.disabled = isLoading;
+             updateMapBtn.disabled = isLoading;
             useLocationBtn.disabled = isLoading;
+            resultsLoader.style.display = isLoading ? 'flex' : 'none';
+            mapLoader.style.display = isLoading ? 'flex' : 'none';
 
             if (isLoading) {
-                mapLoader.style.display = 'flex';
-                resultsLoader.style.display = 'flex';
-                resultsList.innerHTML = '';
-                resultsMessage.textContent = 'Finding locations...';
-                statsNumber.textContent = '-';
-                if (isGeoLoading) {
-                    useLocationBtn.innerHTML = '<div class="btn-spinner"></div>';
-                } else {
-                    updateMapBtn.innerHTML = '<div class="btn-spinner"></div>';
-                }
+                clearResults();
+                statsNumber.textContent = '...';
+                resultsMessage.textContent = 'Searching...';
+                const btn = isGeoLoading ? useLocationBtn : updateMapBtn;
+                const originalText = isGeoLoading ? '<ion-icon name="location-sharp"></ion-icon> <span>My Location</span>' : '<ion-icon name="search-sharp"></ion-icon> <span>Search</span>';
+                btn.innerHTML = '<div class="btn-spinner"></div>';
+                btn.dataset.original = originalText;
             } else {
-                mapLoader.style.display = 'none';
-                resultsLoader.style.display = 'none';
-                updateMapBtn.innerHTML = '<ion-icon name="search-sharp"></ion-icon> <span>Search</span>';
-                useLocationBtn.innerHTML = '<ion-icon name="location-sharp"></ion-icon> <span>My Location</span>';
-            }
-        }
-
-        async function getCoordsFromLocation(location) {
-            try {
-                const response = await fetch(`https://api.opencagedata.com/geocode/v1/json?q=${encodeURIComponent(location)}&key=${OPENCAGE_API_KEY}&language=en`);
-                const data = await response.json();
-                return data.results?.[0]?.geometry || null;
-            } catch (error) {
-                console.error("Geocoding API error:", error);
-                return null;
-            }
-        }
-
-        async function fetchAndDisplayResults(query, lat, lng) {
-            try {
-                const response = await fetch(`https://nominatim.openstreetmap.org/search?q=${encodeURIComponent(query)}&format=json&viewbox=${lng-0.5},${lat+0.5},${lng+0.5},${lat-0.5}&bounded=1&limit=20`);
-                const places = await response.json();
-                
-                statsNumber.textContent = places.length;
-                resultsList.innerHTML = '';
-
-                if (places?.length > 0) {
-                    resultsMessage.textContent = '';
-                    places.forEach(place => {
-                        const li = document.createElement('li');
-                        li.className = 'p-3 bg-white/50 rounded-lg hover:bg-blue-100 cursor-pointer transition-colors duration-200';
-                        li.innerHTML = `
-                            <div class="font-semibold text-blue-800">${place.display_name.split(',')[0]}</div>
-                            <div class="text-xs text-gray-600">${place.display_name.substring(place.display_name.indexOf(',') + 2)}</div>
-                        `;
-                        li.onclick = () => {
-                            document.querySelectorAll('#results-list li').forEach(item => item.classList.remove('!bg-blue-200', 'border-blue-400', 'border'));
-                            li.classList.add('!bg-blue-200', 'border-blue-400', 'border');
-                            updateMapIframe(place.display_name, place.lat, place.lon);
-                        };
-                        resultsList.appendChild(li);
-                    });
-                } else {
-                    resultsMessage.textContent = 'No specific locations found in the list. The map may still show general results.';
-                }
-            } catch (error) {
-                console.error("Nominatim API error:", error);
-                resultsMessage.textContent = 'Could not fetch list of results.';
-                statsNumber.textContent = 'Error';
+                [updateMapBtn, useLocationBtn].forEach(b => {
+                    if(b.dataset.original) b.innerHTML = b.dataset.original;
+                });
             }
         }
         
-        function updateMapIframe(query, lat, lng) {
-            const baseUrl = 'https://www.google.com/maps/embed?pb=';
-            const pb_string = `!1m16!1m12!1m3!1d63464.82585024524!2d${lng}!3d${lat}!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!2m1!1s${encodeURIComponent(query)}!5e0!3m2!1sen!2sid`;
-            mapIframe.src = baseUrl + pb_string;
-        }
-
         async function handleSearch(isGeoSearch = false) {
-            const location = locationInput.value.trim();
-            if (!location) {
+            const locationName = locationInput.value.trim();
+            if (!locationName) {
                 alert("Please enter a city or area.");
                 return;
             }
             
             setLoadingState(true, isGeoSearch);
+            
             const category = categorySelect.value;
-            const fullQuery = `${category} in ${location}`;
-            currentSearchText.textContent = fullQuery;
-            
-            const coords = await getCoordsFromLocation(location);
-            
-            if (coords) {
-                updateMapIframe(fullQuery, coords.lat, coords.lng);
-                await fetchAndDisplayResults(fullQuery, coords.lat, coords.lng);
-            } else {
-                alert("Could not find the specified location. Please try a different name.");
-                currentSearchText.textContent = "Location not found";
+            const query = `${category} in ${locationName}`;
+
+            // Use Nominatim to search for places
+            try {
+                const response = await fetch(`https://nominatim.openstreetmap.org/search?q=${encodeURIComponent(query)}&format=json&addressdetails=1&limit=25`);
+                const places = await response.json();
+                
+                if (places && places.length > 0) {
+                    displayResults(places);
+                } else {
+                    resultsMessage.textContent = "No locations found for this search.";
+                    statsNumber.textContent = '0';
+                }
+            } catch (error) {
+                console.error("Error fetching from Nominatim:", error);
+                resultsMessage.textContent = "Failed to fetch data. Please try again.";
+            } finally {
                 setLoadingState(false, isGeoSearch);
             }
         }
-        
+
+        function displayResults(places) {
+            clearResults();
+            const latLngs = [];
+
+            statsNumber.textContent = places.length;
+            resultsMessage.textContent = '';
+
+            places.forEach(place => {
+                const lat = parseFloat(place.lat);
+                const lon = parseFloat(place.lon);
+                
+                if (!isNaN(lat) && !isNaN(lon)) {
+                    const latLng = [lat, lon];
+                    latLngs.push(latLng);
+
+                    // Create Marker
+                    const marker = L.marker(latLng).addTo(markersGroup);
+                    marker.bindPopup(`<strong>${place.display_name.split(',')[0]}</strong><br>${place.display_name}`);
+                    
+                    // Create List Item
+                    const li = document.createElement('li');
+                    li.className = 'p-3 bg-white/50 rounded-lg hover:bg-blue-100 cursor-pointer transition-colors';
+                    li.innerHTML = `
+                        <div class="font-semibold text-blue-800">${place.display_name.split(',')[0]}</div>
+                        <div class="text-xs text-gray-600">${place.display_name.substring(place.display_name.indexOf(',') + 2)}</div>
+                    `;
+                    resultsList.appendChild(li);
+                    
+                    // Link Marker and List Item
+                    marker.on('click', () => {
+                        map.setView(latLng, 15);
+                        highlightListItem(li);
+                    });
+                    
+                    li.addEventListener('click', () => {
+                        marker.openPopup();
+                        map.setView(latLng, 15);
+                        highlightListItem(li);
+                    });
+                }
+            });
+
+            if (latLngs.length > 0) {
+                map.fitBounds(latLngs, { padding: [50, 50] });
+            }
+        }
+
+        function highlightListItem(selectedLi) {
+            document.querySelectorAll('#results-list li').forEach(item => {
+                item.classList.remove('!bg-blue-200', 'border-blue-400', 'border');
+            });
+            selectedLi.classList.add('!bg-blue-200', 'border-blue-400', 'border');
+            selectedLi.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        }
+
+        function clearResults() {
+            markersGroup.clearLayers();
+            resultsList.innerHTML = '';
+        }
+
         function handleUseLocation() {
             if (!navigator.geolocation) {
                 alert("Geolocation is not supported by your browser.");
                 return;
             }
-
             setLoadingState(true, true);
-            
             navigator.geolocation.getCurrentPosition(async (position) => {
                 const { latitude, longitude } = position.coords;
-
+                // Use Nominatim's reverse geocoding
                 try {
-                    const response = await fetch(`https://api.opencagedata.com/geocode/v1/json?q=${latitude}+${longitude}&key=${OPENCAGE_API_KEY}`);
+                    const response = await fetch(`https://nominatim.openstreetmap.org/reverse?format=json&lat=${latitude}&lon=${longitude}`);
                     const data = await response.json();
-                    
-                    if (data.results?.[0]) {
-                        const components = data.results[0].components;
-                        locationInput.value = components.city || components.town || components.village || components.county || 'Current Location';
+                    if (data && data.address) {
+                        locationInput.value = data.address.city || data.address.town || data.address.village || 'Current Location';
                     } else {
-                        locationInput.value = "Current Location";
+                        locationInput.value = 'Current Location';
                     }
-                    await handleSearch(true);
-
-                } catch (error) {
-                    console.error("Reverse geocoding error:", error);
-                    locationInput.value = "Current Location";
-                    await handleSearch(true);
+                } catch(e) {
+                    console.error("Reverse geocoding failed", e);
+                    locationInput.value = 'Current Location';
                 }
+                await handleSearch(true);
             }, (error) => {
-                console.error("Geolocation error:", error);
-                alert("Unable to retrieve your location. Please grant permission and try again.");
+                alert("Unable to retrieve your location.");
                 setLoadingState(false, true);
             });
         }
-
+        
         // --- EVENT LISTENERS ---
-        document.addEventListener('DOMContentLoaded', () => {
-            locationInput.value = "Pekanbaru"; 
-            
-            setTimeout(() => {
-                handleSearch();
-            }, 100);
-            
-            mapIframe.onload = () => {
-                setLoadingState(false, false);
-            };
-        });
-
+        document.addEventListener('DOMContentLoaded', initMap);
         useLocationBtn.addEventListener('click', handleUseLocation);
     </script>
 </body>
