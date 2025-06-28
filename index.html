@@ -4,7 +4,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>EcoFinder | Open-Source Edition</title>
+    <title>EcoFinder | Hybrid Edition (Google Data + Leaflet Map)</title>
     
     <script src="https://cdn.tailwindcss.com"></script>
     <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -13,9 +13,9 @@
     <script type="module" src="https://unpkg.com/ionicons@7.1.0/dist/ionicons/ionicons.esm.js"></script>
     <script nomodule src="https://unpkg.com/ionicons@7.1.0/dist/ionicons/ionicons.js"></script>
 
-    <!-- PERUBAHAN: Menambahkan Leaflet.js CSS dan JS -->
-    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" crossorigin=""/>
-    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin=""></script>
+    <!-- Menggunakan Leaflet.js untuk tampilan peta -->
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 
     <style>
         body { font-family: 'Poppins', sans-serif; background-color: #f8fafc; }
@@ -34,7 +34,6 @@
         .btn-spinner, .btn-spinner:after { border-radius: 50%; width: 1.25em; height: 1.25em; }
         .btn-spinner { font-size: 10px; position: relative; text-indent: -9999em; border-top: 0.2em solid rgba(255, 255, 255, 0.2); border-right: 0.2em solid rgba(255, 255, 255, 0.2); border-bottom: 0.2em solid rgba(255, 255, 255, 0.2); border-left: 0.2em solid #ffffff; transform: translateZ(0); animation: load8 1.1s infinite linear; }
         @keyframes load8 { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
-        /* Fix Leaflet attribution link color */
         .leaflet-control-attribution a { color: #0078A8; }
     </style>
 </head>
@@ -42,12 +41,12 @@
 <body class="bg-slate-100 text-gray-800 antialiased">
     <div id="app" class="flex flex-col min-h-screen">
         <header class="w-full py-6">
-            <div class="container mx-auto px-4 sm:px-6 lg:px-8 text-center">
+            <div class="container mx-auto px-4 text-center">
                 <h1 class="flex items-center justify-center gap-3 text-3xl sm:text-4xl font-bold">
                     <ion-icon name="leaf" class="text-green-500"></ion-icon>
                     <span>EcoFinder</span>
                 </h1>
-                <p class="text-gray-500 mt-1">Free & Open-Source Recycling Locator</p>
+                <p class="text-gray-500 mt-1">Powered by Google Maps Data</p>
             </div>
         </header>
 
@@ -66,7 +65,7 @@
                 <!-- Control Panel Card -->
                 <div class="bento-card bento-card-interactive lg:col-span-1 lg:row-span-1 rounded-3xl shadow-lg p-6">
                     <form id="locationForm" onsubmit="event.preventDefault(); handleSearch();" class="flex flex-col h-full">
-                        <h2 class="text-xl font-bold mb-4">Find Locations</h2>
+                         <h2 class="text-xl font-bold mb-4">Find Locations</h2>
                         <div class="space-y-4 flex-grow">
                              <div>
                                 <label for="location" class="block text-sm font-semibold text-gray-700 mb-1.5">City or Area</label>
@@ -127,19 +126,20 @@
 
         // --- Leaflet.js Map Variables ---
         let map;
-        let markersGroup; // Layer group to manage markers easily
+        let markersGroup;
+
+        // --- API KEY ---
+        // PERHATIAN: Ganti dengan API Key Anda dari SerpApi.com
+        const SERPAPI_KEY = "f8cfaad8547897471eb7b49fb86114796aba9df4e085a75e8df6dbf6654475db";
+        const CORS_ANYWHERE_PROXY = "https://cors-anywhere.herokuapp.com/"; // Proxy untuk menghindari error CORS di localhost
 
         function initMap() {
-            map = L.map('map').setView([0.5071, 101.4478], 12); // Default to Pekanbaru
-            
+            map = L.map('map').setView([0.5071, 101.4478], 12);
             L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
                 maxZoom: 19,
-                attribution: '© <a href="http://www.openstreetmap.org/copyright">OpenStreetMap</a>'
+                attribution: '© <a href="http://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
             }).addTo(map);
-
             markersGroup = L.layerGroup().addTo(map);
-
-            // Initial search on load
             locationInput.value = "Pekanbaru";
             handleSearch();
         }
@@ -149,53 +149,53 @@
             useLocationBtn.disabled = isLoading;
             resultsLoader.style.display = isLoading ? 'flex' : 'none';
             mapLoader.style.display = isLoading ? 'flex' : 'none';
-
             if (isLoading) {
                 clearResults();
                 statsNumber.textContent = '...';
-                resultsMessage.textContent = 'Searching...';
+                resultsMessage.textContent = 'Contacting our assistant...';
                 const btn = isGeoLoading ? useLocationBtn : updateMapBtn;
-                const originalText = isGeoLoading ? '<ion-icon name="location-sharp"></ion-icon> <span>My Location</span>' : '<ion-icon name="search-sharp"></ion-icon> <span>Search</span>';
                 btn.innerHTML = '<div class="btn-spinner"></div>';
-                btn.dataset.original = originalText;
             } else {
-                [updateMapBtn, useLocationBtn].forEach(b => {
-                    if(b.dataset.original) b.innerHTML = b.dataset.original;
-                });
+                updateMapBtn.innerHTML = `<ion-icon name="search-sharp"></ion-icon> <span>Search</span>`;
+                useLocationBtn.innerHTML = `<ion-icon name="location-sharp"></ion-icon> <span>My Location</span>`;
             }
         }
         
-        async function handleSearch(isGeoSearch = false) {
-            const locationName = locationInput.value.trim();
-            if (!locationName) {
-                alert("Please enter a city or area.");
-                return;
+        async function handleSearch(lat, lon) {
+            setLoadingState(true);
+            const query = `${categorySelect.value} in ${locationInput.value}`;
+            
+            // Membuat URL untuk SerpApi
+            // Parameter `ll` (koordinat) akan memberikan hasil yang lebih akurat
+            let apiUrl = `${CORS_ANYWHERE_PROXY}https://serpapi.com/search.json?engine=google_maps&q=${encodeURIComponent(query)}&type=search&api_key=${SERPAPI_KEY}`;
+            if(lat && lon){
+                apiUrl += `&ll=@${lat},${lon},12z`; // Menambahkan info koordinat jika ada
             }
-            
-            setLoadingState(true, isGeoSearch);
-            
-            const category = categorySelect.value;
-            const query = `${category} in ${locationName}`;
 
-            // Use Nominatim to search for places
             try {
-                const response = await fetch(`https://nominatim.openstreetmap.org/search?q=${encodeURIComponent(query)}&format=json&addressdetails=1&limit=25`);
-                const places = await response.json();
-                
-                if (places && places.length > 0) {
-                    displayResults(places);
+                const response = await fetch(apiUrl);
+                if (!response.ok) {
+                    throw new Error(`API request failed with status ${response.status}`);
+                }
+                const data = await response.json();
+
+                if (data && data.local_results) {
+                    displayResults(data.local_results);
                 } else {
-                    resultsMessage.textContent = "No locations found for this search.";
+                    resultsMessage.textContent = "No locations found by our assistant.";
+                    if (data.error) resultsMessage.textContent += ` (Reason: ${data.error})`;
                     statsNumber.textContent = '0';
                 }
+
             } catch (error) {
-                console.error("Error fetching from Nominatim:", error);
-                resultsMessage.textContent = "Failed to fetch data. Please try again.";
+                console.error("Error fetching from SerpApi:", error);
+                resultsMessage.textContent = "Failed to fetch data. Check your API key or CORS proxy.";
+                 // Jika Anda dapat error CORS, kunjungi https://cors-anywhere.herokuapp.com/ dan klik tombol request
             } finally {
-                setLoadingState(false, isGeoSearch);
+                setLoadingState(false);
             }
         }
-
+        
         function displayResults(places) {
             clearResults();
             const latLngs = [];
@@ -204,37 +204,26 @@
             resultsMessage.textContent = '';
 
             places.forEach(place => {
-                const lat = parseFloat(place.lat);
-                const lon = parseFloat(place.lon);
+                const lat = place.gps_coordinates?.latitude;
+                const lon = place.gps_coordinates?.longitude;
                 
-                if (!isNaN(lat) && !isNaN(lon)) {
+                if (lat && lon) {
                     const latLng = [lat, lon];
                     latLngs.push(latLng);
 
-                    // Create Marker
                     const marker = L.marker(latLng).addTo(markersGroup);
-                    marker.bindPopup(`<strong>${place.display_name.split(',')[0]}</strong><br>${place.display_name}`);
+                    marker.bindPopup(`<strong>${place.title}</strong><br>${place.address || ''}`);
                     
-                    // Create List Item
                     const li = document.createElement('li');
                     li.className = 'p-3 bg-white/50 rounded-lg hover:bg-blue-100 cursor-pointer transition-colors';
                     li.innerHTML = `
-                        <div class="font-semibold text-blue-800">${place.display_name.split(',')[0]}</div>
-                        <div class="text-xs text-gray-600">${place.display_name.substring(place.display_name.indexOf(',') + 2)}</div>
+                        <div class="font-semibold text-blue-800">${place.title}</div>
+                        <div class="text-xs text-gray-600">${place.address || 'No address provided'}</div>
                     `;
                     resultsList.appendChild(li);
                     
-                    // Link Marker and List Item
-                    marker.on('click', () => {
-                        map.setView(latLng, 15);
-                        highlightListItem(li);
-                    });
-                    
-                    li.addEventListener('click', () => {
-                        marker.openPopup();
-                        map.setView(latLng, 15);
-                        highlightListItem(li);
-                    });
+                    marker.on('click', () => { map.setView(latLng, 15); highlightListItem(li); });
+                    li.addEventListener('click', () => { marker.openPopup(); map.setView(latLng, 15); highlightListItem(li); });
                 }
             });
 
@@ -257,34 +246,18 @@
         }
 
         function handleUseLocation() {
-            if (!navigator.geolocation) {
-                alert("Geolocation is not supported by your browser.");
-                return;
-            }
-            setLoadingState(true, true);
+            if (!navigator.geolocation) return alert("Geolocation is not supported.");
+            
             navigator.geolocation.getCurrentPosition(async (position) => {
                 const { latitude, longitude } = position.coords;
-                // Use Nominatim's reverse geocoding
-                try {
-                    const response = await fetch(`https://nominatim.openstreetmap.org/reverse?format=json&lat=${latitude}&lon=${longitude}`);
-                    const data = await response.json();
-                    if (data && data.address) {
-                        locationInput.value = data.address.city || data.address.town || data.address.village || 'Current Location';
-                    } else {
-                        locationInput.value = 'Current Location';
-                    }
-                } catch(e) {
-                    console.error("Reverse geocoding failed", e);
-                    locationInput.value = 'Current Location';
-                }
-                await handleSearch(true);
+                // Cukup gunakan koordinat untuk pencarian, nama tidak perlu diubah
+                locationInput.value = "Current Location";
+                handleSearch(latitude, longitude); // Kirim koordinat ke fungsi pencarian
             }, (error) => {
                 alert("Unable to retrieve your location.");
-                setLoadingState(false, true);
             });
         }
         
-        // --- EVENT LISTENERS ---
         document.addEventListener('DOMContentLoaded', initMap);
         useLocationBtn.addEventListener('click', handleUseLocation);
     </script>
